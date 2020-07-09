@@ -18,21 +18,24 @@ serialOut = False
 
 lastValue = 0
 lastSentMs = 0
+touchedMs = 0
+
+shouldReset = True
 
 def map(value, srcMin, srcMax, toMin, toMax):
     return (((value - srcMin) * (toMax - toMin)) / (srcMax - srcMin)) + toMin
 
 def updateValue(id, threshold, forceInterval):
-    global minValue, maxValue, osc, scales, lastValue, lastSentMs
+    global minValue, maxValue, osc, scales, lastValue, lastSentMs, touchedMs, shouldReset
 
     val = scales.raw_value()
 
     maxValue = max(maxValue, val)
-    minValue = min(minValue, val)
 
-    rescaled = map(val, minValue, maxValue, 0, 1)
+    rescaled = max(0, map(val, minValue, maxValue, 0, 1))
+    touched = abs(rescaled - lastValue) > threshold
 
-    if (abs(rescaled - lastValue) > threshold or ticks_diff(ticks_ms(), lastSentMs) > forceInterval):
+    if (touched or ticks_diff(ticks_ms(), lastSentMs) > forceInterval):
         lastValue = rescaled
         lastSentMs = ticks_ms()
 
@@ -41,6 +44,15 @@ def updateValue(id, threshold, forceInterval):
 
         if serialOut:
             print(rescaled)
+    
+    if touched:
+        touchedMs = ticks_ms()
+        shouldReset = True
+
+    if shouldReset and ticks_diff(ticks_ms(), touchedMs) > 5000:
+        # minValue = min(minValue, val)
+        minValue = val
+        shouldReset = False
 
 def getConfig():
     f = open('config.json')
@@ -66,7 +78,7 @@ if __name__ == "__main__":
 
     led = machine.PWM(machine.Pin(14), freq=1000)
     blink(2)
-    connected = do_connect(config['ssid'], config['password'])
+    connected = do_connect(config['ssid'], config['password'], 20)
     if not connected:
         print('Failed to connect')
         ap = WLAN(AP_IF)
