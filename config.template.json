@@ -1,0 +1,10 @@
+{
+    "ssid": "ssid",
+    "password": "password",
+    "target": "192.168.8.255",
+    "port": 9001,
+    "serialOut": false,
+    "delay": 30,
+    "threshold": 0.001,
+    "forceInterval": 3000
+}
